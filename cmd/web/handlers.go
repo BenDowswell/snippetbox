@@ -2,13 +2,31 @@ package main
 
 import (
 	"fmt"
+	"html/template"
+	"log"
 	"net/http"
 	"strconv"
 )
 
 func home(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Server", "Go")
-	w.Write([]byte("Hello from SnippetBox"))
+
+	files := []string{
+		"./assets/html/base.tmpl",
+		"./assets/html/partials/nav.tmpl",
+		"./assets/html/pages/home.tmpl",
+	}
+	ts, err := template.ParseFiles(files...)
+	if err != nil {
+		log.Print(err.Error())
+		http.Error(w, "Internal server Error", http.StatusInternalServerError)
+		return
+	}
+	err = ts.ExecuteTemplate(w, "base", nil)
+	if err != nil {
+		log.Print(err.Error())
+		http.Error(w, "Internal server Error", http.StatusInternalServerError)
+	}
 }
 func snippetView(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
