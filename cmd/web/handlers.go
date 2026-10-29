@@ -3,8 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-
-	// "html/template"
 	"net/http"
 	"strconv"
 
@@ -12,39 +10,28 @@ import (
 )
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Server", "Go")
-
 	snippets, err := app.snippets.Latest()
 	if err != nil {
 		app.serverError(w, r, err)
 		return
 	}
-	for _, snippet := range snippets {
-		fmt.Fprintf(w, "%+v\n", snippet)
+
+	data := app.newTemplateData(r)
+	data.Snippets = snippets
+
+	err = app.render(w, r, http.StatusOK, "home.tmpl", data)
+	if err != nil {
+		app.serverError(w, r, err)
 	}
-	/*
-		files := []string{
-			"./assets/html/base.tmpl",
-			"./assets/html/partials/nav.tmpl",
-			"./assets/html/pages/home.tmpl",
-		}
-		ts, err := template.ParseFiles(files...)
-		if err != nil {
-			app.serverError(w, r, err)
-			return
-		}
-		err = ts.ExecuteTemplate(w, "base", nil)
-		if err != nil {
-			app.serverError(w, r, err)
-		}
-	*/
 }
+
 func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil || id < 1 {
 		http.NotFound(w, r)
 		return
 	}
+
 	snippet, err := app.snippets.Get(id)
 	if err != nil {
 		switch {
@@ -56,7 +43,13 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "%+v", snippet)
+	data := app.newTemplateData(r)
+	data.Snippet = snippet
+
+	err = app.render(w, r, http.StatusOK, "view.tmpl", data)
+	if err != nil {
+		app.serverError(w, r, err)
+	}
 }
 
 func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
